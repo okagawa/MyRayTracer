@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.24720.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "MyRayTracer", "MyRayTracer\MyRayTracer.fsproj", "{1C56D376-434F-49D6-9F8B-EB81AECB54FF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1C56D376-434F-49D6-9F8B-EB81AECB54FF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1C56D376-434F-49D6-9F8B-EB81AECB54FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1C56D376-434F-49D6-9F8B-EB81AECB54FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1C56D376-434F-49D6-9F8B-EB81AECB54FF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
