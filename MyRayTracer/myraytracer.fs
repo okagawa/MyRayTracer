@@ -1,4 +1,4 @@
-﻿module RayTracer_FSharp
+﻿module Raytracer_FSharp
 
 open System
 open System.Windows.Forms
@@ -31,8 +31,16 @@ type Color(r:float, g:float, b:float) =
     member this.B = b
     member this.ToDrawingColor() = System.Drawing.Color.FromArgb(this.ToInt())
     member this.ToInt() = (Color.floatToInt b) ||| (Color.floatToInt g <<< 8) ||| (Color.floatToInt r <<< 16) ||| (255 <<< 24)
+    static member Scale (k, v:Color) = Color(k*v.R, k*v.G, k*v.B)
+    static member ( + ) (v1:Color, v2:Color) = Color(v1.R+v2.R, v1.G+v2.G, v1.B+v2.B)
+    static member ( * ) (v1:Color, v2:Color) = Color(v1.R*v2.R, v1.G*v2.G, v1.B*v2.B)
+    static member Background = Color(0.0, 0.0, 0.0)
+    static member DefaultColor =  Color(0.0, 0.0, 0.0)
 
 type Ray = {Start: Vector; Dir:Vector}
+
+type Surface =
+    abstract Color : Color
 
 type Intersection =
     { Thing: SceneObject;
@@ -40,12 +48,14 @@ type Intersection =
       Dist: double}
 
 and SceneObject =
+    abstract Surface : Surface
     abstract Intersect : Ray -> Intersection option
     abstract Normal : Vector -> Vector
 
-let Sphere(center, radius) =
+let Sphere(center, radius, surface) =
     let radius2 = radius * radius
     { new SceneObject with
+        member this.Surface = surface
         member this.Normal pos = Vector.Norm (pos - center)
         member this.Intersect (ray:Ray) =
             let eo = center - ray.Start
@@ -60,8 +70,9 @@ let Sphere(center, radius) =
             else Some {Thing = this; Ray = ray; Dist = dist}
     }
 
-let Plane(norm, offset) =
+let Plane(norm, offset, surface) =
     { new SceneObject with
+        member this.Surface = surface
         member this.Normal pos = norm
         member this.Intersect (ray) =
             let denom = Vector.Dot(norm, ray.Dir)
@@ -79,4 +90,32 @@ type Camera(pos : Vector, lookAt : Vector) =
     member c.Forward = forward
     member c.Up = up
     member c.Right = right
+
+type Light = 
+    { Post : Vector;
+      Color: Color }
+
+type Scene =
+    {Things : SceneObject list;
+     Lights : Light list;
+     Camera : Camera }
+
+type RayTracer(screenWidth, screenHeight) =
+    let maxDepth = 5
+
+    let Intersections ray scene =
+        scene.Things
+        |> List.choose (fun obj -> obj.Intersect(ray))
+        |> List.sortBy (fun inter -> inter.Dist)
+
+    let TestRay(ray, scene) =
+        match Intersections ray scene with
+        | [] -> None
+        | isect::_ -> Some isect.Dist
+
+    let TraceRay (ray, scene, depth: int) =
+        match Intersections ray scene with
+        | [] -> Color.Background
+        | isect::_ -> isect.Thing.Surface.Color
+
 

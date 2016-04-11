@@ -1,7 +1,16 @@
-﻿// F# の詳細については、http://fsharp.org を参照してください
-// 詳細については、'F# チュートリアル' プロジェクトを参照してください。
+﻿open System
+open System.Windows.Forms
+open System.Drawing
+open System.Drawing.Imaging
+open System.Diagnostics
+open System.Runtime.InteropServices
+open System.Threading
+open System.Threading.Tasks
+open System.Collections.Concurrent
+open Raytracer_FSharp
 
-[<EntryPoint>]
-let main argv = 
-    printfn "%A" argv
-    0 // 整数の終了コードを返します
+
+[<STAThread>]
+do Application.EnableVisualStyles();
+do Application.SetCompatibleTextRenderingDefault(false);
+do Application.Run(new RayTracerForm())
