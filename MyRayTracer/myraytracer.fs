@@ -40,4 +40,43 @@ type Intersection =
       Dist: double}
 
 and SceneObject =
-    { abstract Intersect }
+    abstract Intersect : Ray -> Intersection option
+    abstract Normal : Vector -> Vector
+
+let Sphere(center, radius) =
+    let radius2 = radius * radius
+    { new SceneObject with
+        member this.Normal pos = Vector.Norm (pos - center)
+        member this.Intersect (ray:Ray) =
+            let eo = center - ray.Start
+            let v = Vector.Dot(eo, ray.Dir)
+            let dist =
+                if (v < 0.0) then 0.0
+                else
+                    let disc = radius2 - (Vector.Dot(eo,eo) - (v*v))
+                    if disc < 0.0 then 0.0
+                    else v - (sqrt(disc))
+            if dist = 0.0 then None
+            else Some {Thing = this; Ray = ray; Dist = dist}
+    }
+
+let Plane(norm, offset) =
+    { new SceneObject with
+        member this.Normal pos = norm
+        member this.Intersect (ray) =
+            let denom = Vector.Dot(norm, ray.Dir)
+            if denom > 0.0 then None 
+            else let dist = (Vector.Dot(norm, ray.Start) + offset) / (-denom)
+                 Some {Thing = this; Ray = ray; Dist = dist}
+    }
+
+type Camera(pos : Vector, lookAt : Vector) =
+    let forward = Vector.Norm(lookAt - pos)
+    let down = Vector(0.0, -1.0, 0.0)
+    let right = 1.5 * Vector.Norm(Vector.Cross(forward, down))
+    let up = 1.5 * Vector.Norm(Vector.Cross(forward, right))
+    member c.Pos = pos
+    member c.Forward = forward
+    member c.Up = up
+    member c.Right = right
+
