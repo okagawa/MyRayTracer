@@ -5,6 +5,7 @@ open System.Windows.Forms
 open System.Drawing
 open System.Threading
 open System.Threading.Tasks
+open Microsoft.FSharp.Linq
 
 type Vector(x:float, y:float, z:float) =
     member this.X = x
@@ -108,14 +109,24 @@ type RayTracer(screenWidth, screenHeight) =
         |> List.choose (fun obj -> obj.Intersect(ray))
         |> List.sortBy (fun inter -> inter.Dist)
 
-    let TestRay(ray, scene) =
+    let TestRay ray scene =
         match Intersections ray scene with
         | [] -> None
         | isect::_ -> Some isect.Dist
 
-    let TraceRay (ray, scene, depth: int) =
+    let TraceRay ray scene (depth:int) =
         match Intersections ray scene with
         | [] -> Color.Background
         | isect::_ -> isect.Thing.Surface.Color
 
+    let GetPoint x y (camera:Camera) =
+        let RecenterX x = (x - screenWidth / 2.0) / (2.0 * screenWidth)
+        let RecenterY y = -(y - screenHeight / 2.0) / (2.0 * screenHeight)
+        Vector.Norm( camera.Forward + ((RecenterX x) * (camera.Right)) + ((RecenterY y) * (camera.Up)) )
 
+
+    let Render scene =
+        for y = 0 to (screenHeight - 1) do
+            for x = 0 to (screenWidth - 1) do
+                let color = TraceRay {Start=scene.Camera.Pos; Dir = GetPoint (float x) (float y) scene.Camera } scene 0 
+                do setPixel x y color.ToDrawingColor()
