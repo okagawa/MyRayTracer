@@ -101,7 +101,7 @@ type Scene =
      Lights : Light list;
      Camera : Camera }
 
-type RayTracer(screenWidth, screenHeight) =
+type RayTracer(screenWidth:int, screenHeight:int) =
     let maxDepth = 5
 
     let Intersections ray scene =
@@ -120,8 +120,8 @@ type RayTracer(screenWidth, screenHeight) =
         | isect::_ -> isect.Thing.Surface.Color
 
     let GetPoint x y (camera:Camera) =
-        let RecenterX x = (x - screenWidth / 2.0) / (2.0 * screenWidth)
-        let RecenterY y = -(y - screenHeight / 2.0) / (2.0 * screenHeight)
+        let RecenterX x = (x - (float screenWidth / 2.0)) / (2.0 * float screenWidth)
+        let RecenterY y = -(y - (float screenHeight / 2.0)) / (2.0 * float screenHeight)
         Vector.Norm( camera.Forward + ((RecenterX x) * (camera.Right)) + ((RecenterY y) * (camera.Up)) )
 
 
@@ -129,4 +129,5 @@ type RayTracer(screenWidth, screenHeight) =
         for y = 0 to (screenHeight - 1) do
             for x = 0 to (screenWidth - 1) do
                 let color = TraceRay {Start=scene.Camera.Pos; Dir = GetPoint (float x) (float y) scene.Camera } scene 0 
+                let intcolor = color.ToInt()
                 do setPixel x y color.ToDrawingColor()
