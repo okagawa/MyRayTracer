@@ -38,17 +38,33 @@ module Surfaces =
                 else 0.7;
             member s.Roughness = 150.0 }
 
+let baseScene = 
+    { Things = [ Plane( Vector(0.0,1.0,0.0), 0.0, Surfaces.Checkerboard);
+                 Sphere( Vector(0.0,1.0,-0.25), 1.0, Surfaces.Shiny) ];
+      Lights = [ { Pos = Vector(-2.0,2.5,0.0); Color = Color(0.5,0.45,0.41) };
+                 { Pos = Vector(2.0,4.5,2.0); Color = Color(0.99,0.95,0.8) } ];
+      Camera = Camera(Vector(2.75, 2.0, 3.75), Vector(-0.6, 0.5, 0.0)) }
 
-let baseScene =
-    { Things = [ Plane(Vector(0.0, 1.0, 0.0), 0.0, Color(1.0,1.0,1.0))];
-      Lights = [ {Pos = Vector(-2.0, 2.5, 0.0); Color = Color(0.5, 0.45, )}]
-    }   
+type ObjectPool<'a>(valueSelector : unit -> 'a) = 
+    let objects = new ConcurrentQueue<'a>() :> IProducerConsumerCollection<'a>
+    member pool.GetObject () = 
+        let b, item = objects.TryTake()
+        if b then item else valueSelector ()
+    member pool.PutObject o = 
+        objects.TryAdd(o) |> ignore
 
 
 type RayTracerForm() as this =
     inherit Form(ClientSize = new Size(width + 95, height + 59), Text = "RayTracer")
     let mutable bitmap = new Bitmap(width, height, PixelFormat.Format32bppRgb)
+    let mutable buffers = ObjectPool(fun () -> Array.create (width * height) 0)
     let mutable pictureBox = new PictureBox()
+    let RayTracerForm_Load sender e =
+        do this.Show()
+        let rgb = buffers.GetObject()
+        let raytracer = new RayTracer(width, height)
+        do  raytracer.Render(baseScene, rgb)
+        pictureBox.Invalidate
     do pictureBox.Dock <- DockStyle.Fill
     do pictureBox.SizeMode <- PictureBoxSizeMode.StretchImage
     do pictureBox.Image <- bitmap
@@ -56,11 +72,6 @@ type RayTracerForm() as this =
     do this.Load += this.RayTracerForm_Load
     do this.Show()
     
-    let RayTracerForm_Load sender e =
-        do this.Show()
-        let raytracer = new RayTracer(width, height)
-        do  raytracer.Render(baseScene)
-        pictureBox.Invalidate
 
 [<STAThread>]
 do Application.EnableVisualStyles();

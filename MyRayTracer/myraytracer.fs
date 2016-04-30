@@ -64,7 +64,6 @@ type Surface =
     abstract Specular : Vector -> Color
     abstract Reflect : Vector -> float
     abstract Roughness : double
-    abstract Color : Color
 
 type Intersection =
     { Thing: SceneObject;
