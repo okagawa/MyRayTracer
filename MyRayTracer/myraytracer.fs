@@ -1,4 +1,5 @@
-﻿module Raytracer_FSharp
+﻿#light
+module Raytracer_FSharp
 
 open System
 open System.Windows.Forms
@@ -27,6 +28,7 @@ type Vector(x:float, y:float, z:float) =
 
 type Color(r:float, g:float, b:float) =
     static member private floatToInt c = let c' = int(255.0*c) in if c' > 255 then 255 else c'
+    static member private legalize d = if d > 1.0 then 1.0 else d
     member this.R = r
     member this.G = g
     member this.B = b
@@ -58,6 +60,10 @@ type Color(r:float, g:float, b:float) =
 type Ray = {Start: Vector; Dir:Vector}
 
 type Surface =
+    abstract Diffuse : Vector -> Color
+    abstract Specular : Vector -> Color
+    abstract Reflect : Vector -> float
+    abstract Roughness : double
     abstract Color : Color
 
 type Intersection =
@@ -110,7 +116,7 @@ type Camera(pos : Vector, lookAt : Vector) =
     member c.Right = right
 
 type Light = 
-    { Post : Vector;
+    { Pos : Vector;
       Color: Color }
 
 type Scene =
@@ -131,10 +137,10 @@ type RayTracer(screenWidth:int, screenHeight:int) =
         | [] -> None
         | isect::_ -> Some isect.Dist
 
-    let TraceRay (ray, scene, depth:int) =
+    let rec TraceRay (ray, scene, depth:int) =
         match Intersections ray scene with
         | [] -> Color.Background
-        | isect::_ -> Shade idsect scene depth
+        | isect::_ -> Shade isect scene depth
 
     and Shade isect scene depth =
         let d = isect.Ray.Dir
@@ -145,10 +151,10 @@ type RayTracer(screenWidth:int, screenHeight:int) =
                            GetNaturalColor(isect.Thing, pos, normal, reflectDir, scene)
         let reflectedColor = if depth >= maxDepth
                              then Color(0.5, 0.5, 0.5)
-                             else GetReflectionColor(isect.Thing, pos+(0.001*reflectDir), normal, scene, depth)
+                             else GetReflectionColor(isect.Thing, pos+(0.001*reflectDir), normal, reflectDir, scene, depth)
         naturalcolor + reflectedColor
 
-    and GetReflectionColor(thing: SceneObject, pos, normal:Vector, rd:Vector, scene:Scene, depth: int)
+    and GetReflectionColor(thing: SceneObject, pos, normal:Vector, rd:Vector, scene:Scene, depth: int) = 
         Color.Scale(thing.Surface.Reflect(pos), TraceRay ( {Start = pos; Dir = rd}, scene, depth+1))
 
     and GetNaturalColor (thing, pos, norm, rd, scene) =
@@ -163,16 +169,26 @@ type RayTracer(screenWidth:int, screenHeight:int) =
             else let illum = Vector.Dot(livec, norm)
                  let lcolor = if illum > 0.0 then Color.Scale(illum, light.Color)
                               else Color.DefaultColor
+                 let specular = Vector.Dot(livec, Vector.Norm(rd))
+                 let scolor = if specular > 0.0
+                              then Color.Scale(System.Math.Pow(specular, thing.Surface.Roughness), light.Color)
+                              else Color.DefaultColor
+                 col + thing.Surface.Diffuse(pos) * lcolor + 
+                       thing.Surface.Specular(pos) * scolor
+        List.fold addLight Color.DefaultColor scene.Lights
 
     let GetPoint x y (camera:Camera) =
         let RecenterX x = (x - (float screenWidth / 2.0)) / (2.0 * float screenWidth)
         let RecenterY y = -(y - (float screenHeight / 2.0)) / (2.0 * float screenHeight)
         Vector.Norm( camera.Forward + ((RecenterX x) * (camera.Right)) + ((RecenterY y) * (camera.Up)) )
 
+    let rand = new Random()
+    let numToHueShiftLookup = new System.Collections.Generic.Dictionary<int,double>()
 
-    let Render scene =
+    member this.Render(scene, rgb:int[]) =
         for y = 0 to (screenHeight - 1) do
+            let stride = y * screenWidth
             for x = 0 to (screenWidth - 1) do
-                let color = TraceRay {Start=scene.Camera.Pos; Dir = GetPoint (float x) (float y) scene.Camera } scene 0 
-                let intcolor = color.ToInt()
-                do setPixel x y color.ToDrawingColor()
+                let color = TraceRay ({Start = scene.Camera.Pos; Dir = GetPoint x y scene.Camera}, scene, 0)
+                let intColor = color.ToInt()
+                rgb.[x + stride] <- intColor
