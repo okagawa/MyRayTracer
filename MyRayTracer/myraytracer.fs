@@ -32,6 +32,23 @@ type Color(r:float, g:float, b:float) =
     member this.B = b
     member this.ToDrawingColor() = System.Drawing.Color.FromArgb(this.ToInt())
     member this.ToInt() = (Color.floatToInt b) ||| (Color.floatToInt g <<< 8) ||| (Color.floatToInt r <<< 16) ||| (255 <<< 24)
+    member this.ShiftHue (hue) =
+        let c = this.ToDrawingColor()
+        let h,s,l = hue, 0.9, ((float(c.GetBrightness()) - 0.5) * 0.5) + 0.5
+        match s, l with
+        | _, 0.0 -> Color(0.0, 0.0, 0.0)
+        | 0.0, _ -> Color(float l, float l, float l)
+        | s, l ->
+            let temp2 = if l <= 0.5 then l * (1.0+s) else l+s-(l*s)
+            let temp1 = 2.0*l - temp2
+            let convert x =
+                let x = if x < 0.0 then x + 1.0 elif x > 1.0 then x - 1.0 else x
+                if x < 1.0/6.0 then temp1 + (temp2 - temp1) * x * 6.0
+                elif x < 1.0/2.0 then temp2
+                elif x < 2.0/3.0 then (temp1 + (temp2 - temp1) * ((2.0/3.0) - x))
+                else temp1
+            let c1,c2,c3 = (convert(h + 1.0/3.0), convert(h), convert(h-1.0/3.0))
+            new Color(c1, c2, c3)
     static member Scale (k, v:Color) = Color(k*v.R, k*v.G, k*v.B)
     static member ( + ) (v1:Color, v2:Color) = Color(v1.R+v2.R, v1.G+v2.G, v1.B+v2.B)
     static member ( * ) (v1:Color, v2:Color) = Color(v1.R*v2.R, v1.G*v2.G, v1.B*v2.B)
@@ -109,15 +126,43 @@ type RayTracer(screenWidth:int, screenHeight:int) =
         |> List.choose (fun obj -> obj.Intersect(ray))
         |> List.sortBy (fun inter -> inter.Dist)
 
-    let TestRay ray scene =
+    let TestRay(ray, scene) =
         match Intersections ray scene with
         | [] -> None
         | isect::_ -> Some isect.Dist
 
-    let TraceRay ray scene (depth:int) =
+    let TraceRay (ray, scene, depth:int) =
         match Intersections ray scene with
         | [] -> Color.Background
-        | isect::_ -> isect.Thing.Surface.Color
+        | isect::_ -> Shade idsect scene depth
+
+    and Shade isect scene depth =
+        let d = isect.Ray.Dir
+        let pos = isect.Dist * d + isect.Ray.Start
+        let normal = isect.Thing.Normal(pos)
+        let reflectDir = d - 2.0 * Vector.Dot(normal, d) * normal
+        let naturalcolor = Color.DefaultColor +
+                           GetNaturalColor(isect.Thing, pos, normal, reflectDir, scene)
+        let reflectedColor = if depth >= maxDepth
+                             then Color(0.5, 0.5, 0.5)
+                             else GetReflectionColor(isect.Thing, pos+(0.001*reflectDir), normal, scene, depth)
+        naturalcolor + reflectedColor
+
+    and GetReflectionColor(thing: SceneObject, pos, normal:Vector, rd:Vector, scene:Scene, depth: int)
+        Color.Scale(thing.Surface.Reflect(pos), TraceRay ( {Start = pos; Dir = rd}, scene, depth+1))
+
+    and GetNaturalColor (thing, pos, norm, rd, scene) =
+        let addLight col (light : Light) =
+            let ldis = light.Pos - pos
+            let livec = Vector.Norm(ldis)
+            let neatIsect = TestRay({Start = pos; Dir = livec}, scene)
+            let isInShadow = match neatIsect with
+                             | None -> false
+                             | Some d -> not(d > Vector.Mag(ldis))
+            if isInShadow then col
+            else let illum = Vector.Dot(livec, norm)
+                 let lcolor = if illum > 0.0 then Color.Scale(illum, light.Color)
+                              else Color.DefaultColor
 
     let GetPoint x y (camera:Camera) =
         let RecenterX x = (x - (float screenWidth / 2.0)) / (2.0 * float screenWidth)
