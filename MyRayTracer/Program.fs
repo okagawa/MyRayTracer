@@ -12,10 +12,6 @@ open Raytracer_FSharp
 let mutable width = 800
 let mutable height = 600
 
-let baseScene =
-    { Things = [ Plane(Vector(0.0, 1.0, 0.0), 0.0, Color(1.0,1.0,1.0))];
-      Lights = [ {Pos = Vector(-2.0, 2.5, 0.0); Color = Color(0.5, 0.45, )}]
-    }   
 
 
 type RayTracerForm() as this =

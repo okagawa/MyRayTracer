@@ -41,7 +41,10 @@ type Color(r:float, g:float, b:float) =
 type Ray = {Start: Vector; Dir:Vector}
 
 type Surface =
-    abstract Color : Color
+    abstract Diffuse: Vector -> Color
+    abstract Specular: Vector -> Color
+    abstract Reflect: Vector -> float
+    abstract Roughness : double
 
 type Intersection =
     { Thing: SceneObject;
@@ -52,6 +55,7 @@ and SceneObject =
     abstract Surface : Surface
     abstract Intersect : Ray -> Intersection option
     abstract Normal : Vector -> Vector
+
 
 let Sphere(center, radius, surface) =
     let radius2 = radius * radius
@@ -93,7 +97,7 @@ type Camera(pos : Vector, lookAt : Vector) =
     member c.Right = right
 
 type Light = 
-    { Post : Vector;
+    { Pos : Vector;
       Color: Color }
 
 type Scene =
@@ -101,7 +105,7 @@ type Scene =
      Lights : Light list;
      Camera : Camera }
 
-type RayTracer(screenWidth:int, screenHeight:int) =
+type RayTracer(screenWidth:int, screenHeight:int, setPixel) =
     let maxDepth = 5
 
     let Intersections ray scene =
@@ -130,4 +134,12 @@ type RayTracer(screenWidth:int, screenHeight:int) =
             for x = 0 to (screenWidth - 1) do
                 let color = TraceRay {Start=scene.Camera.Pos; Dir = GetPoint (float x) (float y) scene.Camera } scene 0 
                 let intcolor = color.ToInt()
-                do setPixel x y color.ToDrawingColor()
+                do setPixel x y (color.ToDrawingColor())
+
+    let baseScene:Scene =
+        { Things = [ Plane(Vector(0.0, 1.0, 0.0), 0.0, Surface(Color(1.0,1.0,1.0)));
+                     Sphere(Vector(0.0, 1.0, 0.0), 1.0, Color(1.0,0.0,0.0));
+                     Sphere(Vector(-1.0,0.5,1.5), 0.5, Color(0.0,1.0,0.0))];
+          Lights = [ {Pos = Vector(-2.0, 2.5, 0.0); Color = Color(0.5, 0.07, 0.07)}];
+          Camera = Camera(Vector(3.,2.,4.), Vector(-1.,0.5,0.0))
+        }   
