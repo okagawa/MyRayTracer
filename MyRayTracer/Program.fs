@@ -53,33 +53,12 @@ type ObjectPool<'a>(valueSelector : unit -> 'a) =
     member pool.PutObject o = 
         objects.TryAdd(o) |> ignore
 
-(*
-type RayTracerForm() as this =
-    inherit Form(ClientSize = new Size(width + 95, height + 59), Text = "RayTracer")
-    let mutable bitmap = new Bitmap(width, height, PixelFormat.Format32bppRgb)
-    let mutable buffers = ObjectPool(fun () -> Array.create (width * height) 0)
-    let mutable pictureBox = new PictureBox()
-    do pictureBox.Dock <- DockStyle.Fill
-    do pictureBox.SizeMode <- PictureBoxSizeMode.StretchImage
-    do pictureBox.Image <- bitmap
-    do this.Controls.Add pictureBox
-    do this.Text <- "Ray Tracer"
-    do this.Load.Add( this.RayTracerForm_Load )
-    do this.Show()
-
-    member this.RayTracerForm_Load (e:EventArgs):unit =
-        let rgb = buffers.GetObject()
-        let raytracer = new RayTracer(width, height)
-        do this.Show()
-        do Console.WriteLine "Hello2"
-        do raytracer.Render(baseScene, rgb)
-        do pictureBox.Invalidate()
- *)
 
  type RayTracerForm() as this =
     inherit Form(ClientSize = new Size(width+95, height+59), Text="RayTracer")
     let mutable bitmap = new Bitmap(width, height, PixelFormat.Format32bppRgb)
     let mutable buffers = ObjectPool(fun () -> Array.create (width * height) 0)
+    let mutable rect = Rectangle(0,0,width,height)
     let mutable pictureBox = new PictureBox()
     do pictureBox.Dock <- DockStyle.Fill
     do pictureBox.SizeMode <- PictureBoxSizeMode.StretchImage
@@ -90,11 +69,16 @@ type RayTracerForm() as this =
     do this.Show()
 
     member this.RayTracerForm_Load (e:EventArgs):unit =
+        let rgb = buffers.GetObject()
         let raytracer = new RayTracer(width, height, fun (x,y,color) ->
                 do bitmap.SetPixel(x,y,color)
                 if x = 0 then pictureBox.Refresh() else ())
         do this.Show()
-        do raytracer.Render(baseScene)
+        do raytracer.Render(baseScene, rgb)
+        let bmpData = bitmap.LockBits(rect, Imaging.ImageLockMode.WriteOnly, bitmap.PixelFormat)
+        Marshal.Copy(rgb, 0, bmpData.Scan0, rgb.Length)
+        bitmap.UnlockBits bmpData
+        buffers.PutObject(rgb)
         do pictureBox.Invalidate()
 
 

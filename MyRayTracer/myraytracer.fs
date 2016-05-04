@@ -184,12 +184,11 @@ type RayTracer(screenWidth:int, screenHeight:int, setPixel) =
     let rand = new Random()
     let numToHueShiftLookup = new System.Collections.Generic.Dictionary<int,double>()
 
-    member this.Render(scene) =
+    member this.Render(scene, rgb:int[]) =
         for y = 0 to (screenHeight - 1) do
             let stride = y * screenWidth
             for x = 0 to (screenWidth - 1) do
                 let color = TraceRay ({Start = scene.Camera.Pos; Dir = GetPoint (float x)  (float y) scene.Camera}, scene, 0)
-                setPixel (x, y, color.ToDrawingColor())
-                (* let intColor = color.ToInt()
+                (* setPixel (x, y, color.ToDrawingColor()) *)
+                let intColor = color.ToInt()
                 rgb.[x + stride] <- intColor
-                *)
