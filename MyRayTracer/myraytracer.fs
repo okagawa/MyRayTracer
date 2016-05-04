@@ -188,6 +188,6 @@ type RayTracer(screenWidth:int, screenHeight:int) =
         for y = 0 to (screenHeight - 1) do
             let stride = y * screenWidth
             for x = 0 to (screenWidth - 1) do
-                let color = TraceRay ({Start = scene.Camera.Pos; Dir = GetPoint x y scene.Camera}, scene, 0)
+                let color = TraceRay ({Start = scene.Camera.Pos; Dir = GetPoint (float x)  (float y) scene.Camera}, scene, 0)
                 let intColor = color.ToInt()
                 rgb.[x + stride] <- intColor

@@ -53,23 +53,41 @@ type ObjectPool<'a>(valueSelector : unit -> 'a) =
     member pool.PutObject o = 
         objects.TryAdd(o) |> ignore
 
-
+(*
 type RayTracerForm() as this =
     inherit Form(ClientSize = new Size(width + 95, height + 59), Text = "RayTracer")
     let mutable bitmap = new Bitmap(width, height, PixelFormat.Format32bppRgb)
     let mutable buffers = ObjectPool(fun () -> Array.create (width * height) 0)
     let mutable pictureBox = new PictureBox()
-    let RayTracerForm_Load sender e =
-        do this.Show()
-        let rgb = buffers.GetObject()
-        let raytracer = new RayTracer(width, height)
-        do  raytracer.Render(baseScene, rgb)
-        pictureBox.Invalidate
     do pictureBox.Dock <- DockStyle.Fill
     do pictureBox.SizeMode <- PictureBoxSizeMode.StretchImage
     do pictureBox.Image <- bitmap
     do this.Controls.Add pictureBox
-    do this.Load += this.RayTracerForm_Load
+    do this.Text <- "Ray Tracer"
+    do this.Load.Add( this.RayTracerForm_Load )
+    do this.Show()
+
+    member this.RayTracerForm_Load (e:EventArgs):unit =
+        let rgb = buffers.GetObject()
+        let raytracer = new RayTracer(width, height)
+        do this.Show()
+        do Console.WriteLine "Hello2"
+        do raytracer.Render(baseScene, rgb)
+        do pictureBox.Invalidate()
+ *)
+
+ type RayTracerForm() as this =
+    inherit Form(ClientSize = new Size(width+95, height+59), Text="RayTracer")
+    let mutable bitmap = new Bitmap(width, height, PixelFormat.Format32bppRgb)
+    let mutable buffers = ObjectPool(fun () -> Array.create (width * height) 0)
+    let mutable pictureBox = new PictureBox()
+    let Beep e = System.Console.Beep()
+    do pictureBox.Dock <- DockStyle.Fill
+    do pictureBox.SizeMode <- PictureBoxSizeMode.StretchImage
+    do pictureBox.Image <- bitmap
+    do this.Text <- "Ray Tracer"
+    do this.Click.Add ( Beep )
+    do this.Load.Add (fun e -> Console.WriteLine("Hi"))
     do this.Show()
     
 
