@@ -9,7 +9,7 @@ open System.Threading.Tasks
 open System.Collections.Concurrent
 open Raytracer_FSharp
 
-let mutable width = 800
+let mutable width = 600
 let mutable height = 600
 
 module Surfaces = 
@@ -81,15 +81,22 @@ type RayTracerForm() as this =
     let mutable bitmap = new Bitmap(width, height, PixelFormat.Format32bppRgb)
     let mutable buffers = ObjectPool(fun () -> Array.create (width * height) 0)
     let mutable pictureBox = new PictureBox()
-    let Beep e = System.Console.Beep()
     do pictureBox.Dock <- DockStyle.Fill
     do pictureBox.SizeMode <- PictureBoxSizeMode.StretchImage
     do pictureBox.Image <- bitmap
-    do this.Text <- "Ray Tracer"
-    do this.Click.Add ( Beep )
-    do this.Load.Add (fun e -> Console.WriteLine("Hi"))
+    do this.Controls.Add (pictureBox)
+    do this.Text <- "F# Ray Tracer"
+    do this.Load.Add(this.RayTracerForm_Load)
     do this.Show()
-    
+
+    member this.RayTracerForm_Load (e:EventArgs):unit =
+        let raytracer = new RayTracer(width, height, fun (x,y,color) ->
+                do bitmap.SetPixel(x,y,color)
+                if x = 0 then pictureBox.Refresh() else ())
+        do this.Show()
+        do raytracer.Render(baseScene)
+        do pictureBox.Invalidate()
+
 
 [<STAThread>]
 do Application.EnableVisualStyles();

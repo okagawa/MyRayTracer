@@ -123,7 +123,7 @@ type Scene =
      Lights : Light list;
      Camera : Camera }
 
-type RayTracer(screenWidth:int, screenHeight:int) =
+type RayTracer(screenWidth:int, screenHeight:int, setPixel) =
     let maxDepth = 5
 
     let Intersections ray scene =
@@ -184,10 +184,12 @@ type RayTracer(screenWidth:int, screenHeight:int) =
     let rand = new Random()
     let numToHueShiftLookup = new System.Collections.Generic.Dictionary<int,double>()
 
-    member this.Render(scene, rgb:int[]) =
+    member this.Render(scene) =
         for y = 0 to (screenHeight - 1) do
             let stride = y * screenWidth
             for x = 0 to (screenWidth - 1) do
                 let color = TraceRay ({Start = scene.Camera.Pos; Dir = GetPoint (float x)  (float y) scene.Camera}, scene, 0)
-                let intColor = color.ToInt()
+                setPixel (x, y, color.ToDrawingColor())
+                (* let intColor = color.ToInt()
                 rgb.[x + stride] <- intColor
+                *)
